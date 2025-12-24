@@ -33,6 +33,16 @@ export function QuestionRenderer({ question, value, onChange }: QuestionRenderer
     const options: RatingNumberOptions =
       (question.options as RatingNumberOptions | null | undefined) ?? {};
 
+    // IMPORTANT: input value must be string|number|undefined, not unknown/object
+    const inputValue: string | number =
+      value === null || value === undefined
+        ? ""
+        : typeof value === "number"
+          ? value
+          : typeof value === "string"
+            ? value
+            : "";
+
     return (
       <label className="space-y-1 text-sm">
         <span className="font-medium">{question.prompt}</span>
@@ -40,7 +50,7 @@ export function QuestionRenderer({ question, value, onChange }: QuestionRenderer
           type="number"
           min={options.min}
           max={options.max}
-          value={value === null || value === undefined ? "" : String(value)}
+          value={inputValue}
           onChange={(event) => {
             const raw = event.target.value;
             onChange(raw === "" ? null : Number(raw));
@@ -55,11 +65,14 @@ export function QuestionRenderer({ question, value, onChange }: QuestionRenderer
     const opts: SelectOptions = (question.options as SelectOptions | null | undefined) ?? {};
     const choices: string[] = Array.isArray(opts.choices) ? opts.choices : [];
 
+    const selectValue: string =
+      value === null || value === undefined ? "" : typeof value === "string" ? value : String(value);
+
     return (
       <label className="space-y-1 text-sm">
         <span className="font-medium">{question.prompt}</span>
         <select
-          value={value === null || value === undefined ? "" : String(value)}
+          value={selectValue}
           onChange={(event) => onChange(event.target.value)}
           className={baseClass}
         >
@@ -75,12 +88,14 @@ export function QuestionRenderer({ question, value, onChange }: QuestionRenderer
   }
 
   if (question.type === "text_long") {
+    const textValue: string = typeof value === "string" ? value : "";
+
     return (
       <label className="space-y-1 text-sm">
         <span className="font-medium">{question.prompt}</span>
         <textarea
           rows={5}
-          value={typeof value === "string" ? value : ""}
+          value={textValue}
           onChange={(event) => onChange(event.target.value)}
           className={baseClass}
         />
@@ -88,13 +103,16 @@ export function QuestionRenderer({ question, value, onChange }: QuestionRenderer
     );
   }
 
-  // text_short fallback (and any unknown text-ish)
+  // text_short fallback (and other text-ish)
+  const shortValue: string =
+    value === null || value === undefined ? "" : typeof value === "string" ? value : String(value);
+
   return (
     <label className="space-y-1 text-sm">
       <span className="font-medium">{question.prompt}</span>
       <input
         type="text"
-        value={typeof value === "string" ? value : value == null ? "" : String(value)}
+        value={shortValue}
         onChange={(event) => onChange(event.target.value)}
         className={baseClass}
       />
