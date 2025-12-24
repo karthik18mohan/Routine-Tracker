@@ -35,41 +35,43 @@ export function NavBar({ activeName, date, onDateChange }: NavBarProps) {
   };
 
   return (
-    <header className="border-b border-slate-200 bg-white/80 py-4 backdrop-blur dark:border-slate-800 dark:bg-slate-950/80">
-      <div className="container-shell flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <p className="text-xs uppercase text-slate-500">Active</p>
-          <p className="text-lg font-semibold">{activeName ?? "Select person"}</p>
+    <header className="border-b border-slate-200/70 bg-white/80 py-4 backdrop-blur dark:border-slate-800/70 dark:bg-slate-950/80">
+      <div className="container-shell flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div className="flex flex-col gap-1">
+          <p className="text-xs uppercase tracking-widest text-slate-500">Active</p>
+          <p className="text-lg font-semibold text-slate-900 dark:text-white">
+            {activeName ?? "Select person"}
+          </p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
           {onDateChange ? (
-            <label className="flex items-center gap-2 text-sm">
+            <label className="flex w-full items-center gap-2 text-sm sm:w-auto">
               <span className="text-slate-500">Date</span>
               <input
                 type="date"
                 value={date}
                 onChange={(event) => onDateChange(event.target.value)}
-                className="rounded-md border border-slate-300 px-2 py-1 text-sm dark:border-slate-700"
+                className="w-full rounded-full border border-slate-200/70 bg-white/90 px-3 py-2 text-sm shadow-sm shadow-slate-200/40 transition duration-300 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-200 dark:border-slate-800/70 dark:bg-slate-900/80 dark:shadow-slate-950/40 dark:focus:border-indigo-300 dark:focus:ring-indigo-500/30 sm:w-auto"
               />
             </label>
           ) : (
             <div className="text-sm text-slate-500">{format(new Date(), "PPP")}</div>
           )}
           <Link
-            className="rounded-md border border-slate-300 px-3 py-2 text-sm dark:border-slate-700"
+            className="w-full rounded-full border border-slate-200/70 bg-white/90 px-4 py-2 text-center text-sm font-medium text-slate-700 shadow-sm shadow-slate-200/40 transition duration-300 ease-out hover:-translate-y-0.5 hover:border-indigo-200/80 hover:shadow-md dark:border-slate-800/70 dark:bg-slate-900/80 dark:text-slate-100 dark:shadow-slate-950/40 sm:w-auto"
             href="/insights"
           >
             Insights
           </Link>
           <button
-            className="rounded-md border border-slate-300 px-3 py-2 text-sm dark:border-slate-700"
+            className="w-full rounded-full border border-slate-200/70 bg-white/90 px-4 py-2 text-sm font-medium text-slate-700 shadow-sm shadow-slate-200/40 transition duration-300 ease-out hover:-translate-y-0.5 hover:border-indigo-200/80 hover:shadow-md dark:border-slate-800/70 dark:bg-slate-900/80 dark:text-slate-100 dark:shadow-slate-950/40 sm:w-auto"
             onClick={switchPerson}
             type="button"
           >
             Switch person
           </button>
           <button
-            className="rounded-md border border-slate-300 px-3 py-2 text-sm dark:border-slate-700"
+            className="w-full rounded-full border border-slate-200/70 bg-white/90 px-4 py-2 text-sm font-medium text-slate-700 shadow-sm shadow-slate-200/40 transition duration-300 ease-out hover:-translate-y-0.5 hover:border-indigo-200/80 hover:shadow-md dark:border-slate-800/70 dark:bg-slate-900/80 dark:text-slate-100 dark:shadow-slate-950/40 sm:w-auto"
             onClick={toggleTheme}
             type="button"
           >

@@ -13,16 +13,16 @@ type SelectOptions = { choices?: string[] };
 
 export function QuestionRenderer({ question, value, onChange }: QuestionRendererProps) {
   const baseClass =
-    "w-full rounded-md border border-slate-300 px-3 py-2 text-sm dark:border-slate-700";
+    "w-full rounded-2xl border border-slate-200/70 bg-white/90 px-4 py-3 text-sm shadow-sm shadow-slate-200/40 transition duration-300 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-200 dark:border-slate-800/70 dark:bg-slate-900/80 dark:shadow-slate-950/40 dark:focus:border-indigo-300 dark:focus:ring-indigo-500/30";
 
   if (question.type === "checkbox") {
     return (
-      <label className="flex items-center gap-2 text-sm">
+      <label className="flex items-center gap-3 rounded-2xl border border-transparent bg-white/80 px-3 py-2 text-sm shadow-sm shadow-slate-200/40 transition duration-300 hover:-translate-y-0.5 hover:shadow-md dark:bg-slate-900/70 dark:shadow-slate-950/40">
         <input
           type="checkbox"
           checked={Boolean(value)}
           onChange={(event) => onChange(event.target.checked)}
-          className="h-4 w-4 rounded border-slate-300"
+          className="h-5 w-5 rounded border-slate-300 text-indigo-500 focus:ring-indigo-400"
         />
         <span>{question.prompt}</span>
       </label>
@@ -44,8 +44,10 @@ export function QuestionRenderer({ question, value, onChange }: QuestionRenderer
             : "";
 
     return (
-      <label className="space-y-1 text-sm">
-        <span className="font-medium">{question.prompt}</span>
+      <label className="space-y-2 text-sm">
+        <span className="font-medium text-slate-700 dark:text-slate-100">
+          {question.prompt}
+        </span>
         <input
           type="number"
           min={options.min}
@@ -69,8 +71,10 @@ export function QuestionRenderer({ question, value, onChange }: QuestionRenderer
       value === null || value === undefined ? "" : typeof value === "string" ? value : String(value);
 
     return (
-      <label className="space-y-1 text-sm">
-        <span className="font-medium">{question.prompt}</span>
+      <label className="space-y-2 text-sm">
+        <span className="font-medium text-slate-700 dark:text-slate-100">
+          {question.prompt}
+        </span>
         <select
           value={selectValue}
           onChange={(event) => onChange(event.target.value)}
@@ -91,8 +95,10 @@ export function QuestionRenderer({ question, value, onChange }: QuestionRenderer
     const textValue: string = typeof value === "string" ? value : "";
 
     return (
-      <label className="space-y-1 text-sm">
-        <span className="font-medium">{question.prompt}</span>
+      <label className="space-y-2 text-sm">
+        <span className="font-medium text-slate-700 dark:text-slate-100">
+          {question.prompt}
+        </span>
         <textarea
           rows={5}
           value={textValue}
@@ -108,12 +114,14 @@ export function QuestionRenderer({ question, value, onChange }: QuestionRenderer
     value === null || value === undefined ? "" : typeof value === "string" ? value : String(value);
 
   return (
-    <label className="space-y-1 text-sm">
-      <span className="font-medium">{question.prompt}</span>
-      <input
-        type="text"
-        value={shortValue}
-        onChange={(event) => onChange(event.target.value)}
+  <label className="space-y-2 text-sm">
+    <span className="font-medium text-slate-700 dark:text-slate-100">
+      {question.prompt}
+    </span>
+    <input
+      type="text"
+      value={shortValue}
+      onChange={(event) => onChange(event.target.value)}
         className={baseClass}
       />
     </label>
