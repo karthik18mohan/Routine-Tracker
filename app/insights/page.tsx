@@ -7,7 +7,17 @@ import { useToast } from "../../components/ToastProvider";
 import { Skeleton } from "../../components/Skeleton";
 import { format } from "date-fns";
 import { todayString } from "../../lib/date";
-import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Line,
+  LineChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis
+} from "recharts";
 
 const ranges = ["week", "month", "year"] as const;
 
@@ -46,8 +56,16 @@ export default function InsightsPage() {
     return data.questions.filter((q: any) => q.type === "select" || q.type === "rating");
   }, [data]);
 
+  const waterTrend = useMemo(() => {
+    if (!data?.waterTrend?.points) return [];
+    return data.waterTrend.points.map((point: any) => ({
+      ...point,
+      label: format(new Date(point.date), "MMM d")
+    }));
+  }, [data]);
+
   return (
-    <main className="min-h-screen">
+    <main className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-sky-50 dark:from-slate-950 dark:via-slate-950 dark:to-slate-900">
       <NavBar activeName={data?.person?.display_name} date={anchor} onDateChange={setAnchor} />
       <div className="container-shell space-y-8 py-8">
         <div className="flex flex-wrap items-center gap-3">
@@ -77,6 +95,32 @@ export default function InsightsPage() {
                 {data.tasks.completed}/{data.tasks.total} completed ({data.tasks.rate}%)
               </p>
             </section>
+
+            {waterTrend.length > 0 && (
+              <section className="space-y-4">
+                <div>
+                  <h2 className="text-xl font-semibold">Water (last 10 days)</h2>
+                  <p className="text-sm text-slate-500">Daily liters logged.</p>
+                </div>
+                <div className="h-56 rounded-2xl border border-slate-200/70 bg-white/90 p-4 shadow-lg shadow-slate-200/50 backdrop-blur dark:border-slate-800/70 dark:bg-slate-900/80 dark:shadow-slate-950/40">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={waterTrend}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="label" />
+                      <YAxis allowDecimals={false} />
+                      <Tooltip />
+                      <Line
+                        type="monotone"
+                        dataKey="value"
+                        stroke="#0f172a"
+                        strokeWidth={2}
+                        dot={{ r: 3 }}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              </section>
+            )}
 
             <section className="space-y-4">
               <h2 className="text-xl font-semibold">Question insights</h2>

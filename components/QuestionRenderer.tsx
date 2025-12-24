@@ -29,11 +29,85 @@ export function QuestionRenderer({ question, value, onChange }: QuestionRenderer
     );
   }
 
-  if (question.type === "number" || question.type === "rating") {
+  if (question.type === "rating") {
+    const options: RatingNumberOptions & { labels?: string[] } =
+      (question.options as (RatingNumberOptions & { labels?: string[] }) | null | undefined) ??
+      {};
+    const isMood = question.prompt.toLowerCase().includes("mood");
+    const defaultMoodIcons = ["😞", "🙁", "😐", "🙂", "😊", "😁"];
+
+    if (isMood) {
+      const rawLabels = Array.isArray(options.labels) ? options.labels : defaultMoodIcons;
+      const moodLabels =
+        rawLabels.length >= 6
+          ? rawLabels.slice(0, 6)
+          : [...rawLabels, ...defaultMoodIcons.slice(rawLabels.length, 6)];
+      const selectValue =
+        value === null || value === undefined
+          ? ""
+          : typeof value === "number"
+            ? String(value)
+            : typeof value === "string"
+              ? value
+              : "";
+
+      return (
+        <label className="space-y-2 text-sm">
+          <span className="font-medium text-slate-700 dark:text-slate-100">
+            {question.prompt}
+          </span>
+          <select
+            value={selectValue}
+            onChange={(event) => {
+              const raw = event.target.value;
+              onChange(raw === "" ? null : Number(raw));
+            }}
+            className={baseClass}
+          >
+            <option value="">Select...</option>
+            {moodLabels.map((label, idx) => (
+              <option key={`${label}-${idx}`} value={String(idx + 1)}>
+                {label}
+              </option>
+            ))}
+          </select>
+        </label>
+      );
+    }
+
+    const inputValue: string | number =
+      value === null || value === undefined
+        ? ""
+        : typeof value === "number"
+          ? value
+          : typeof value === "string"
+            ? value
+            : "";
+
+    return (
+      <label className="space-y-2 text-sm">
+        <span className="font-medium text-slate-700 dark:text-slate-100">
+          {question.prompt}
+        </span>
+        <input
+          type="number"
+          min={options.min}
+          max={options.max}
+          value={inputValue}
+          onChange={(event) => {
+            const raw = event.target.value;
+            onChange(raw === "" ? null : Number(raw));
+          }}
+          className={baseClass}
+        />
+      </label>
+    );
+  }
+
+  if (question.type === "number") {
     const options: RatingNumberOptions =
       (question.options as RatingNumberOptions | null | undefined) ?? {};
 
-    // IMPORTANT: input value must be string|number|undefined, not unknown/object
     const inputValue: string | number =
       value === null || value === undefined
         ? ""
@@ -114,14 +188,14 @@ export function QuestionRenderer({ question, value, onChange }: QuestionRenderer
     value === null || value === undefined ? "" : typeof value === "string" ? value : String(value);
 
   return (
-  <label className="space-y-2 text-sm">
-    <span className="font-medium text-slate-700 dark:text-slate-100">
-      {question.prompt}
-    </span>
-    <input
-      type="text"
-      value={shortValue}
-      onChange={(event) => onChange(event.target.value)}
+    <label className="space-y-2 text-sm">
+      <span className="font-medium text-slate-700 dark:text-slate-100">
+        {question.prompt}
+      </span>
+      <input
+        type="text"
+        value={shortValue}
+        onChange={(event) => onChange(event.target.value)}
         className={baseClass}
       />
     </label>

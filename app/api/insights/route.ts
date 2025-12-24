@@ -9,7 +9,8 @@ import {
   parseISO,
   startOfMonth,
   startOfWeek,
-  startOfYear
+  startOfYear,
+  subDays
 } from "date-fns";
 import { getSupabaseAdmin } from "../../../lib/supabaseAdmin";
 
@@ -123,6 +124,44 @@ export async function GET(request: Request) {
   const questions = (questionsRes.data ?? []) as QuestionRow[];
   const answers = (answersRes.data ?? []) as AnswerRow[];
   const tasks = (tasksRes.data ?? []) as TaskRow[];
+
+  const waterQuestion = questions.find(
+    (question) => question.type === "number" && question.prompt.toLowerCase().includes("water")
+  );
+  const waterStart = subDays(parseISO(anchor), 9);
+  const waterDays = eachDayOfInterval({ start: waterStart, end: parseISO(anchor) }).map((day) =>
+    format(day, "yyyy-MM-dd")
+  );
+  let waterTrend: { question_id: string; points: { date: string; value: number | null }[] } | null =
+    null;
+
+  if (waterQuestion) {
+    const waterAnswersRes = await supabaseAdmin
+      .from("answers")
+      .select("answer_date, value_num")
+      .eq("person_id", personId)
+      .eq("question_id", waterQuestion.id)
+      .gte("answer_date", format(waterStart, "yyyy-MM-dd"))
+      .lte("answer_date", format(parseISO(anchor), "yyyy-MM-dd"));
+
+    if (waterAnswersRes.error) {
+      return NextResponse.json({ error: waterAnswersRes.error.message }, { status: 500 });
+    }
+
+    const waterAnswers = (waterAnswersRes.data ?? []) as { answer_date: string; value_num: number | null }[];
+    const waterByDate = waterAnswers.reduce((acc: Record<string, number | null>, answer) => {
+      acc[answer.answer_date] = answer.value_num;
+      return acc;
+    }, {});
+
+    waterTrend = {
+      question_id: waterQuestion.id,
+      points: waterDays.map((day) => ({
+        date: day,
+        value: waterByDate[day] ?? null
+      }))
+    };
+  }
 
   const answersByQuestion = answers.reduce((acc: Record<string, AnswerRow[]>, ans: AnswerRow) => {
     (acc[ans.question_id] ??= []).push(ans);
@@ -272,6 +311,7 @@ export async function GET(request: Request) {
     range,
     anchor,
     window: { start: startStr, end: endStr },
+    waterTrend,
     questions: questionStats,
     tasks: {
       completed: completedTasks,
