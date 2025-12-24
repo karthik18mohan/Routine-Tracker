@@ -28,7 +28,7 @@ join (
     ('routine', 'Diet good?', 'select', '{"choices": ["good", "ok", "bad"]}'::jsonb, 2),
     ('routine', 'Music practice', 'checkbox', '{}'::jsonb, 3),
     ('routine', 'Water liters', 'number', '{}'::jsonb, 4),
-    ('routine', 'Mood', 'rating', '{"min":1,"max":5,"labels":["😞","😐","🙂","😊","🔥"]}'::jsonb, 5),
+    ('routine', 'Mood', 'rating', '{"min":1,"max":6,"labels":["😞","🙁","😐","🙂","😊","😁"]}'::jsonb, 5),
     ('journal', 'Best thing today?', 'text_short', '{}'::jsonb, 1),
     ('journal', 'What to improve tomorrow?', 'text_short', '{}'::jsonb, 2),
     ('journal', 'Notes', 'text_long', '{}'::jsonb, 3)
