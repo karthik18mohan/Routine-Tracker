@@ -16,6 +16,42 @@ import { getSupabaseAdmin } from "../../../lib/supabaseAdmin";
 export const runtime = "nodejs";
 
 type RangeKey = "week" | "month" | "year";
+type QuestionType =
+  | "checkbox"
+  | "number"
+  | "rating"
+  | "select"
+  | "text_short"
+  | "text_long";
+
+type QuestionRow = {
+  id: string;
+  person_id: string;
+  prompt: string;
+  type: QuestionType;
+  options: any;
+  sort_order: number;
+  is_active: boolean;
+};
+
+type AnswerRow = {
+  question_id: string;
+  answer_date: string; // YYYY-MM-DD
+  value_bool: boolean | null;
+  value_num: number | null;
+  value_text: string | null;
+  value_json: any;
+};
+
+type TaskRow = {
+  id: string;
+  status: "todo" | "done";
+};
+
+type PersonRow = {
+  id: string;
+  display_name: string;
+};
 
 const getRange = (range: RangeKey, anchor: string) => {
   const anchorDate = parseISO(anchor);
@@ -33,6 +69,7 @@ const getRange = (range: RangeKey, anchor: string) => {
 
 export async function GET(request: Request) {
   const supabaseAdmin = getSupabaseAdmin();
+
   const personId = cookies().get("active_person_id")?.value;
   if (!personId) {
     return NextResponse.json({ error: "No active person" }, { status: 401 });
@@ -45,60 +82,75 @@ export async function GET(request: Request) {
   const { start, end } = getRange(range, anchor);
   const startStr = format(start, "yyyy-MM-dd");
   const endStr = format(end, "yyyy-MM-dd");
-  const days = eachDayOfInterval({ start, end }).map((day) => format(day, "yyyy-MM-dd"));
+  const days = eachDayOfInterval({ start, end }).map((d) => format(d, "yyyy-MM-dd"));
 
-  const [{ data: person }, { data: questions }, { data: answers }, { data: tasks }] =
-    await Promise.all([
-      supabaseAdmin.from("people").select("id, display_name").eq("id", personId).single(),
-      supabaseAdmin
-        .from("questions")
-        .select("*")
-        .eq("person_id", personId)
-        .eq("is_active", true)
-        .order("sort_order"),
-      supabaseAdmin
-        .from("answers")
-        .select("*")
-        .eq("person_id", personId)
-        .gte("answer_date", startStr)
-        .lte("answer_date", endStr),
-      supabaseAdmin
-        .from("tasks")
-        .select("*")
-        .eq("person_id", personId)
-        .gte("due_date", startStr)
-        .lte("due_date", endStr)
-    ]);
+  const [personRes, questionsRes, answersRes, tasksRes] = await Promise.all([
+    supabaseAdmin.from("people").select("id, display_name").eq("id", personId).maybeSingle(),
+    supabaseAdmin
+      .from("questions")
+      .select("id, person_id, prompt, type, options, sort_order, is_active")
+      .eq("person_id", personId)
+      .eq("is_active", true)
+      .order("sort_order"),
+    supabaseAdmin
+      .from("answers")
+      .select("question_id, answer_date, value_bool, value_num, value_text, value_json")
+      .eq("person_id", personId)
+      .gte("answer_date", startStr)
+      .lte("answer_date", endStr),
+    supabaseAdmin
+      .from("tasks")
+      .select("id, status")
+      .eq("person_id", personId)
+      .gte("due_date", startStr)
+      .lte("due_date", endStr)
+  ]);
 
-  const answersByQuestion = (answers ?? []).reduce((acc, answer) => {
-    acc[answer.question_id] = acc[answer.question_id] || [];
-    acc[answer.question_id].push(answer);
+  if (personRes.error) {
+    return NextResponse.json({ error: personRes.error.message }, { status: 500 });
+  }
+  if (questionsRes.error) {
+    return NextResponse.json({ error: questionsRes.error.message }, { status: 500 });
+  }
+  if (answersRes.error) {
+    return NextResponse.json({ error: answersRes.error.message }, { status: 500 });
+  }
+  if (tasksRes.error) {
+    return NextResponse.json({ error: tasksRes.error.message }, { status: 500 });
+  }
+
+  const person = (personRes.data as PersonRow | null) ?? null;
+  const questions = (questionsRes.data ?? []) as QuestionRow[];
+  const answers = (answersRes.data ?? []) as AnswerRow[];
+  const tasks = (tasksRes.data ?? []) as TaskRow[];
+
+  const answersByQuestion = answers.reduce((acc: Record<string, AnswerRow[]>, ans: AnswerRow) => {
+    (acc[ans.question_id] ??= []).push(ans);
     return acc;
-  }, {} as Record<string, any[]>);
+  }, {} as Record<string, AnswerRow[]>);
 
-  const questionStats = (questions ?? []).map((question) => {
-    const questionAnswers = answersByQuestion[question.id] ?? [];
+  const questionStats = questions.map((question: QuestionRow) => {
+    const questionAnswers: AnswerRow[] = answersByQuestion[question.id] ?? [];
 
     if (question.type === "checkbox") {
-      const trueCount = questionAnswers.filter((a) => a.value_bool).length;
-      const completionRate = days.length
-        ? Math.round((trueCount / days.length) * 100)
-        : 0;
+      const trueCount = questionAnswers.reduce(
+        (acc: number, a: AnswerRow) => acc + (a.value_bool ? 1 : 0),
+        0
+      );
 
-      const answerByDate = questionAnswers.reduce((acc, a) => {
-        acc[a.answer_date] = a.value_bool;
+      const completionRate = days.length ? Math.round((trueCount / days.length) * 100) : 0;
+
+      const answerByDate = questionAnswers.reduce((acc: Record<string, boolean>, a: AnswerRow) => {
+        acc[a.answer_date] = Boolean(a.value_bool);
         return acc;
       }, {} as Record<string, boolean>);
 
       let streak = 0;
       for (let i = days.length - 1; i >= 0; i -= 1) {
         const dateKey = days[i];
-        if (dateKey > anchor) continue;
-        if (answerByDate[dateKey]) {
-          streak += 1;
-        } else {
-          break;
-        }
+        if (dateKey > anchor) continue; // don't count future days inside the window
+        if (answerByDate[dateKey]) streak += 1;
+        else break;
       }
 
       return {
@@ -112,10 +164,10 @@ export async function GET(request: Request) {
 
     if (question.type === "number") {
       const nums = questionAnswers
-        .map((a) => a.value_num)
-        .filter((value) => typeof value === "number");
+        .map((a: AnswerRow) => a.value_num)
+        .filter((v: number | null): v is number => typeof v === "number" && Number.isFinite(v));
 
-      const sum = nums.reduce((acc, value) => acc + value, 0);
+      const sum = nums.reduce((acc: number, v: number) => acc + v, 0);
       const avg = nums.length ? sum / nums.length : 0;
       const min = nums.length ? Math.min(...nums) : 0;
       const max = nums.length ? Math.max(...nums) : 0;
@@ -135,26 +187,36 @@ export async function GET(request: Request) {
 
     if (question.type === "rating" || question.type === "select") {
       const distribution: Record<string, number> = {};
+
       if (question.type === "rating") {
-        const min = question.options?.min ?? 1;
-        const max = question.options?.max ?? 5;
-        const labels = question.options?.labels ?? [];
+        const min = Number(question.options?.min ?? 1);
+        const max = Number(question.options?.max ?? 5);
+        const labels: string[] = Array.isArray(question.options?.labels)
+          ? question.options.labels
+          : [];
+
         for (let i = min; i <= max; i += 1) {
           const label = labels[i - min] ?? String(i);
           distribution[label] = 0;
         }
-        questionAnswers.forEach((a) => {
+
+        questionAnswers.forEach((a: AnswerRow) => {
           if (typeof a.value_num !== "number") return;
-          const label = labels[a.value_num - min] ?? String(a.value_num);
+          const idx = a.value_num - min;
+          const label = labels[idx] ?? String(a.value_num);
           distribution[label] = (distribution[label] ?? 0) + 1;
         });
       } else {
-        const choices = question.options?.choices ?? [];
+        const choices: string[] = Array.isArray(question.options?.choices)
+          ? question.options.choices
+          : [];
+
         choices.forEach((choice: string) => {
           distribution[choice] = 0;
         });
-        questionAnswers.forEach((a) => {
-          const label = a.value_text;
+
+        questionAnswers.forEach((a: AnswerRow) => {
+          const label = a.value_text ?? "";
           if (!label) return;
           distribution[label] = (distribution[label] ?? 0) + 1;
         });
@@ -164,22 +226,30 @@ export async function GET(request: Request) {
         id: question.id,
         prompt: question.prompt,
         type: question.type,
-        distribution: Object.entries(distribution).map(([label, count]) => ({ label, count }))
+        distribution: Object.entries(distribution).map(([label, count]) => ({
+          label,
+          count
+        }))
       };
     }
 
     if (question.type === "text_short" || question.type === "text_long") {
       const entries = questionAnswers
-        .filter((a) => a.value_text)
-        .sort((a, b) => (a.answer_date < b.answer_date ? 1 : -1))
+        .filter((a: AnswerRow) => Boolean(a.value_text))
+        .sort((a: AnswerRow, b: AnswerRow) => (a.answer_date < b.answer_date ? 1 : -1))
         .slice(0, 10)
-        .map((a) => ({ date: a.answer_date, value: a.value_text }));
+        .map((a: AnswerRow) => ({ date: a.answer_date, value: a.value_text ?? "" }));
+
+      const count = questionAnswers.reduce(
+        (acc: number, a: AnswerRow) => acc + (a.value_text ? 1 : 0),
+        0
+      );
 
       return {
         id: question.id,
         prompt: question.prompt,
         type: question.type,
-        count: questionAnswers.filter((a) => a.value_text).length,
+        count,
         latest: entries
       };
     }
@@ -191,8 +261,11 @@ export async function GET(request: Request) {
     };
   });
 
-  const completedTasks = (tasks ?? []).filter((task) => task.status === "done").length;
-  const totalTasks = tasks?.length ?? 0;
+  const completedTasks = tasks.reduce(
+    (acc: number, t: TaskRow) => acc + (t.status === "done" ? 1 : 0),
+    0
+  );
+  const totalTasks = tasks.length;
 
   return NextResponse.json({
     person,
