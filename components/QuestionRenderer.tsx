@@ -1,12 +1,15 @@
 "use client";
 
-import { Question } from "../lib/types";
+import type { Question } from "../lib/types";
 
 type QuestionRendererProps = {
   question: Question;
   value: unknown;
   onChange: (value: unknown) => void;
 };
+
+type RatingNumberOptions = { min?: number; max?: number };
+type SelectOptions = { choices?: string[] };
 
 export function QuestionRenderer({ question, value, onChange }: QuestionRendererProps) {
   const baseClass =
@@ -27,18 +30,21 @@ export function QuestionRenderer({ question, value, onChange }: QuestionRenderer
   }
 
   if (question.type === "number" || question.type === "rating") {
-    const options = question.options as { min?: number; max?: number };
+    const options: RatingNumberOptions =
+      (question.options as RatingNumberOptions | null | undefined) ?? {};
+
     return (
       <label className="space-y-1 text-sm">
         <span className="font-medium">{question.prompt}</span>
         <input
           type="number"
-          min={options?.min}
-          max={options?.max}
-          value={value ?? ""}
-          onChange={(event) =>
-            onChange(event.target.value === "" ? null : Number(event.target.value))
-          }
+          min={options.min}
+          max={options.max}
+          value={value === null || value === undefined ? "" : String(value)}
+          onChange={(event) => {
+            const raw = event.target.value;
+            onChange(raw === "" ? null : Number(raw));
+          }}
           className={baseClass}
         />
       </label>
@@ -46,17 +52,19 @@ export function QuestionRenderer({ question, value, onChange }: QuestionRenderer
   }
 
   if (question.type === "select") {
-    const choices = (question.options as { choices?: string[] })?.choices ?? [];
+    const opts: SelectOptions = (question.options as SelectOptions | null | undefined) ?? {};
+    const choices: string[] = Array.isArray(opts.choices) ? opts.choices : [];
+
     return (
       <label className="space-y-1 text-sm">
         <span className="font-medium">{question.prompt}</span>
         <select
-          value={value ?? ""}
+          value={value === null || value === undefined ? "" : String(value)}
           onChange={(event) => onChange(event.target.value)}
           className={baseClass}
         >
           <option value="">Select...</option>
-          {choices.map((choice) => (
+          {choices.map((choice: string) => (
             <option key={choice} value={choice}>
               {choice}
             </option>
@@ -72,7 +80,7 @@ export function QuestionRenderer({ question, value, onChange }: QuestionRenderer
         <span className="font-medium">{question.prompt}</span>
         <textarea
           rows={5}
-          value={(value as string) ?? ""}
+          value={typeof value === "string" ? value : ""}
           onChange={(event) => onChange(event.target.value)}
           className={baseClass}
         />
@@ -80,12 +88,13 @@ export function QuestionRenderer({ question, value, onChange }: QuestionRenderer
     );
   }
 
+  // text_short fallback (and any unknown text-ish)
   return (
     <label className="space-y-1 text-sm">
       <span className="font-medium">{question.prompt}</span>
       <input
         type="text"
-        value={(value as string) ?? ""}
+        value={typeof value === "string" ? value : value == null ? "" : String(value)}
         onChange={(event) => onChange(event.target.value)}
         className={baseClass}
       />
