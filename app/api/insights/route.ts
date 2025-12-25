@@ -196,6 +196,7 @@ export async function GET(request: Request) {
         id: question.id,
         prompt: question.prompt,
         type: question.type,
+        sort_order: question.sort_order,
         completion_rate: completionRate,
         current_streak: streak
       };
@@ -215,6 +216,7 @@ export async function GET(request: Request) {
         id: question.id,
         prompt: question.prompt,
         type: question.type,
+        sort_order: question.sort_order,
         stats: {
           sum: Number(sum.toFixed(2)),
           avg: Number(avg.toFixed(2)),
@@ -265,6 +267,7 @@ export async function GET(request: Request) {
         id: question.id,
         prompt: question.prompt,
         type: question.type,
+        sort_order: question.sort_order,
         distribution: Object.entries(distribution).map(([label, count]) => ({
           label,
           count
@@ -288,6 +291,7 @@ export async function GET(request: Request) {
         id: question.id,
         prompt: question.prompt,
         type: question.type,
+        sort_order: question.sort_order,
         count,
         latest: entries
       };
@@ -296,7 +300,8 @@ export async function GET(request: Request) {
     return {
       id: question.id,
       prompt: question.prompt,
-      type: question.type
+      type: question.type,
+      sort_order: question.sort_order
     };
   });
 

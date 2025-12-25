@@ -13,6 +13,7 @@ export type Question = {
   type: "checkbox" | "number" | "rating" | "select" | "text_short" | "text_long";
   options: Record<string, unknown>;
   sort_order: number;
+  is_active: boolean;
 };
 
 export type Answer = {

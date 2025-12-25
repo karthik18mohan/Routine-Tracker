@@ -11,21 +11,12 @@
   --chart-tooltip-bg: #ffffff;
 }
 
-html.dark {
-  color-scheme: dark;
-  --chart-foreground: #e2e8f0;
-  --chart-grid: rgba(148, 163, 184, 0.25);
-  --chart-muted: #94a3b8;
-  --chart-accent: #38bdf8;
-  --chart-tooltip-bg: #0f172a;
-}
-
 body {
-  @apply bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100;
+  @apply bg-slate-50 text-slate-900;
 }
 
 input, select, textarea {
-  @apply bg-white dark:bg-slate-900;
+  @apply bg-white;
 }
 
 .container-shell {
