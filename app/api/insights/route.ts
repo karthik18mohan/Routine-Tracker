@@ -84,6 +84,12 @@ export async function GET(request: Request) {
   const startStr = format(start, "yyyy-MM-dd");
   const endStr = format(end, "yyyy-MM-dd");
   const days = eachDayOfInterval({ start, end }).map((d) => format(d, "yyyy-MM-dd"));
+  const trendStart = subDays(parseISO(anchor), 9);
+  const trendStartStr = format(trendStart, "yyyy-MM-dd");
+  const trendEndStr = format(parseISO(anchor), "yyyy-MM-dd");
+  const trendDays = eachDayOfInterval({ start: trendStart, end: parseISO(anchor) }).map((d) =>
+    format(d, "yyyy-MM-dd")
+  );
 
   const [personRes, questionsRes, answersRes, tasksRes] = await Promise.all([
     supabaseAdmin.from("people").select("id, display_name").eq("id", personId).maybeSingle(),
@@ -128,10 +134,8 @@ export async function GET(request: Request) {
   const waterQuestion = questions.find(
     (question) => question.type === "number" && question.prompt.toLowerCase().includes("water")
   );
-  const waterStart = subDays(parseISO(anchor), 9);
-  const waterDays = eachDayOfInterval({ start: waterStart, end: parseISO(anchor) }).map((day) =>
-    format(day, "yyyy-MM-dd")
-  );
+  const waterStart = trendStart;
+  const waterDays = trendDays;
   let waterTrend: { question_id: string; points: { date: string; value: number | null }[] } | null =
     null;
 
@@ -170,6 +174,9 @@ export async function GET(request: Request) {
 
   const questionStats = questions.map((question: QuestionRow) => {
     const questionAnswers: AnswerRow[] = answersByQuestion[question.id] ?? [];
+    const trendAnswers = questionAnswers.filter(
+      (answer) => answer.answer_date >= trendStartStr && answer.answer_date <= trendEndStr
+    );
 
     if (question.type === "checkbox") {
       const trueCount = questionAnswers.reduce(
@@ -192,13 +199,24 @@ export async function GET(request: Request) {
         else break;
       }
 
+      const trendByDate = trendAnswers.reduce((acc: Record<string, boolean>, a: AnswerRow) => {
+        acc[a.answer_date] = Boolean(a.value_bool);
+        return acc;
+      }, {} as Record<string, boolean>);
+
       return {
         id: question.id,
         prompt: question.prompt,
         type: question.type,
         sort_order: question.sort_order,
         completion_rate: completionRate,
-        current_streak: streak
+        current_streak: streak,
+        trend: {
+          points: trendDays.map((day) => ({
+            date: day,
+            value: trendByDate[day] === undefined ? null : trendByDate[day] ? 1 : 0
+          }))
+        }
       };
     }
 
@@ -212,6 +230,11 @@ export async function GET(request: Request) {
       const min = nums.length ? Math.min(...nums) : 0;
       const max = nums.length ? Math.max(...nums) : 0;
 
+      const trendByDate = trendAnswers.reduce((acc: Record<string, number | null>, a: AnswerRow) => {
+        acc[a.answer_date] = a.value_num;
+        return acc;
+      }, {} as Record<string, number | null>);
+
       return {
         id: question.id,
         prompt: question.prompt,
@@ -222,12 +245,19 @@ export async function GET(request: Request) {
           avg: Number(avg.toFixed(2)),
           min,
           max
+        },
+        trend: {
+          points: trendDays.map((day) => ({
+            date: day,
+            value: trendByDate[day] ?? null
+          }))
         }
       };
     }
 
     if (question.type === "rating" || question.type === "select") {
       const distribution: Record<string, number> = {};
+      let optionLabels: string[] = [];
 
       if (question.type === "rating") {
         const min = Number(question.options?.min ?? 1);
@@ -235,11 +265,14 @@ export async function GET(request: Request) {
         const labels: string[] = Array.isArray(question.options?.labels)
           ? question.options.labels
           : [];
+        optionLabels = Array.from({ length: max - min + 1 }, (_, idx) => {
+          const value = idx + min;
+          return labels[idx] ?? String(value);
+        });
 
-        for (let i = min; i <= max; i += 1) {
-          const label = labels[i - min] ?? String(i);
+        optionLabels.forEach((label) => {
           distribution[label] = 0;
-        }
+        });
 
         questionAnswers.forEach((a: AnswerRow) => {
           if (typeof a.value_num !== "number") return;
@@ -251,6 +284,7 @@ export async function GET(request: Request) {
         const choices: string[] = Array.isArray(question.options?.choices)
           ? question.options.choices
           : [];
+        optionLabels = choices;
 
         choices.forEach((choice: string) => {
           distribution[choice] = 0;
@@ -263,6 +297,30 @@ export async function GET(request: Request) {
         });
       }
 
+      const optionTrend = trendDays.map((day) => {
+        const entry: Record<string, number | string> = { date: day };
+        optionLabels.forEach((label) => {
+          entry[label] = 0;
+        });
+        return entry;
+      });
+
+      const trendByDate = optionTrend.reduce((acc, entry) => {
+        acc[entry.date as string] = entry;
+        return acc;
+      }, {} as Record<string, Record<string, number | string>>);
+
+      trendAnswers.forEach((a: AnswerRow) => {
+        const dayEntry = trendByDate[a.answer_date];
+        if (!dayEntry) return;
+        const label =
+          question.type === "rating"
+            ? optionLabels[(a.value_num ?? 0) - Number(question.options?.min ?? 1)] ?? ""
+            : a.value_text ?? "";
+        if (!label) return;
+        dayEntry[label] = (dayEntry[label] as number) + 1;
+      });
+
       return {
         id: question.id,
         prompt: question.prompt,
@@ -271,7 +329,11 @@ export async function GET(request: Request) {
         distribution: Object.entries(distribution).map(([label, count]) => ({
           label,
           count
-        }))
+        })),
+        optionTrend: {
+          keys: optionLabels,
+          points: optionTrend
+        }
       };
     }
 
