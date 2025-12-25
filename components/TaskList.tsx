@@ -17,7 +17,7 @@ export function TaskList({ tasks, onToggle }: TaskListProps) {
       {tasks.map((task) => (
         <li
           key={task.id}
-          className="flex items-center justify-between rounded-2xl border border-slate-200/70 bg-white/90 px-4 py-3 text-sm shadow-md shadow-slate-200/40 transition duration-300 ease-out hover:-translate-y-0.5 hover:border-indigo-200/80 hover:shadow-lg dark:border-slate-800/70 dark:bg-slate-900/80 dark:shadow-slate-950/40"
+          className="flex items-center justify-between rounded-2xl border border-slate-200/70 bg-white/90 px-4 py-3 text-sm shadow-md shadow-slate-200/40 transition duration-300 ease-out hover:-translate-y-0.5 hover:border-indigo-200/80 hover:shadow-lg"
         >
           <label className="flex items-center gap-2">
             <input
@@ -30,7 +30,7 @@ export function TaskList({ tasks, onToggle }: TaskListProps) {
               className={
                 task.status === "done"
                   ? "text-slate-400 line-through"
-                  : "text-slate-700 dark:text-slate-100"
+                  : "text-slate-700"
               }
             >
               {task.title}

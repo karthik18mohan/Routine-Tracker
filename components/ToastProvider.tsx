@@ -47,7 +47,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
               "rounded-lg px-4 py-3 text-sm shadow-lg",
               toast.type === "error" && "bg-red-500 text-white",
               toast.type === "success" && "bg-emerald-500 text-white",
-              toast.type === "info" && "bg-slate-900 text-white dark:bg-slate-200 dark:text-slate-900"
+              toast.type === "info" && "bg-slate-900 text-white"
             )}
           >
             {toast.message}
