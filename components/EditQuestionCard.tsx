@@ -87,8 +87,8 @@ export function EditQuestionCard({ question, onUpdate, onDelete, onMove }: EditQ
       const min = numberMin.trim() === "" ? undefined : Number(numberMin);
       const max = numberMax.trim() === "" ? undefined : Number(numberMax);
       const options: Record<string, number> = {};
-      if (Number.isFinite(min)) options.min = min;
-      if (Number.isFinite(max)) options.max = max;
+      if (typeof min === "number" && Number.isFinite(min)) options.min = min;
+      if (typeof max === "number" && Number.isFinite(max)) options.max = max;
       return { prompt: trimmedPrompt, type, options, is_active: isActive };
     }
     return { prompt: trimmedPrompt, type, options: {}, is_active: isActive };
