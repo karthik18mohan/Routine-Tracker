@@ -29,6 +29,8 @@ export default function InsightsPage() {
   const { pushToast } = useToast();
   const router = useRouter();
 
+  const chartAxisTick = { fill: "var(--chart-muted)", fontSize: 12 };
+
   useEffect(() => {
     const load = async () => {
       setLoading(true);
@@ -54,6 +56,17 @@ export default function InsightsPage() {
   const distributionCharts = useMemo(() => {
     if (!data?.questions) return [];
     return data.questions.filter((q: any) => q.type === "select" || q.type === "rating");
+  }, [data]);
+
+  const orderedQuestions = useMemo(() => {
+    if (!data?.questions) return [];
+    const nonDropdown = data.questions.filter(
+      (question: any) => question.type !== "select" && question.type !== "rating"
+    );
+    const dropdown = data.questions.filter(
+      (question: any) => question.type === "select" || question.type === "rating"
+    );
+    return [...nonDropdown, ...dropdown];
   }, [data]);
 
   const waterTrend = useMemo(() => {
@@ -89,50 +102,76 @@ export default function InsightsPage() {
           <Skeleton lines={6} />
         ) : (
           <>
-            <section className="space-y-3">
-              <h2 className="text-xl font-semibold">Task completion</h2>
-              <p className="text-sm text-slate-500">
-                {data.tasks.completed}/{data.tasks.total} completed ({data.tasks.rate}%)
-              </p>
-            </section>
-
-            {waterTrend.length > 0 && (
-              <section className="space-y-4">
-                <div>
-                  <h2 className="text-xl font-semibold">Water (last 10 days)</h2>
-                  <p className="text-sm text-slate-500">Daily liters logged.</p>
-                </div>
-                <div className="h-56 rounded-2xl border border-slate-200/70 bg-white/90 p-4 shadow-lg shadow-slate-200/50 backdrop-blur dark:border-slate-800/70 dark:bg-slate-900/80 dark:shadow-slate-950/40">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={waterTrend}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="label" />
-                      <YAxis allowDecimals={false} />
-                      <Tooltip />
-                      <Line
-                        type="monotone"
-                        dataKey="value"
-                        stroke="#0f172a"
-                        strokeWidth={2}
-                        dot={{ r: 3 }}
+            <section className="space-y-4">
+              <h2 className="text-xl font-semibold">Overview</h2>
+              <div className="grid gap-4 lg:grid-cols-2">
+                <div className="rounded-2xl border border-slate-200/70 bg-white/90 p-5 shadow-lg shadow-slate-200/50 backdrop-blur dark:border-slate-800/70 dark:bg-slate-900/80 dark:shadow-slate-950/40">
+                  <div className="space-y-2">
+                    <h3 className="text-lg font-semibold">Task completion</h3>
+                    <p className="text-sm text-slate-500">
+                      {data.tasks.completed}/{data.tasks.total} completed ({data.tasks.rate}%)
+                    </p>
+                    <div className="h-2 overflow-hidden rounded-full bg-slate-200/70 dark:bg-slate-800/70">
+                      <div
+                        className="h-full rounded-full bg-gradient-to-r from-indigo-500 via-sky-500 to-fuchsia-500"
+                        style={{ width: `${data.tasks.rate}%` }}
                       />
-                    </LineChart>
-                  </ResponsiveContainer>
+                    </div>
+                  </div>
                 </div>
-              </section>
-            )}
+                <div className="rounded-2xl border border-slate-200/70 bg-white/90 p-5 shadow-lg shadow-slate-200/50 backdrop-blur dark:border-slate-800/70 dark:bg-slate-900/80 dark:shadow-slate-950/40">
+                  <div className="space-y-2">
+                    <h3 className="text-lg font-semibold">Water (last 10 days)</h3>
+                    <p className="text-sm text-slate-500">Daily liters logged.</p>
+                  </div>
+                  {waterTrend.length > 0 ? (
+                    <div className="mt-4 h-48 text-[color:var(--chart-foreground)]">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <LineChart data={waterTrend}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
+                          <XAxis dataKey="label" tick={chartAxisTick} />
+                          <YAxis allowDecimals={false} tick={chartAxisTick} />
+                          <Tooltip
+                            contentStyle={{
+                              borderRadius: 12,
+                              borderColor: "var(--chart-grid)",
+                              backgroundColor: "var(--chart-tooltip-bg)",
+                              color: "var(--chart-foreground)"
+                            }}
+                            wrapperStyle={{ outline: "none" }}
+                            labelStyle={{ color: "var(--chart-foreground)" }}
+                            itemStyle={{ color: "var(--chart-foreground)" }}
+                          />
+                          <Line
+                            type="monotone"
+                            dataKey="value"
+                            stroke="var(--chart-accent)"
+                            strokeWidth={2}
+                            dot={{ r: 3, fill: "var(--chart-accent)" }}
+                          />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </div>
+                  ) : (
+                    <p className="mt-3 text-sm text-slate-500">No water entries yet.</p>
+                  )}
+                </div>
+              </div>
+            </section>
 
             <section className="space-y-4">
               <h2 className="text-xl font-semibold">Question insights</h2>
               <div className="grid gap-4">
-                {data.questions.map((question: any) => (
+                {orderedQuestions.map((question: any) => (
                   <div
                     key={question.id}
-                    className="rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900"
+                    className="rounded-2xl border border-slate-200/70 bg-white/90 p-5 shadow-sm shadow-slate-200/40 dark:border-slate-800/70 dark:bg-slate-900/80 dark:shadow-slate-950/40"
                   >
                     <div className="flex items-center justify-between gap-3">
                       <h3 className="font-medium">{question.prompt}</h3>
-                      <span className="text-xs text-slate-500">{question.type}</span>
+                      <span className="text-xs uppercase tracking-wide text-slate-500">
+                        {question.type}
+                      </span>
                     </div>
                     {question.type === "checkbox" && (
                       <div className="mt-3 text-sm text-slate-500">
@@ -149,14 +188,24 @@ export default function InsightsPage() {
                       </div>
                     )}
                     {(question.type === "select" || question.type === "rating") && (
-                      <div className="mt-4 h-48">
+                      <div className="mt-4 h-52 text-[color:var(--chart-foreground)]">
                         <ResponsiveContainer width="100%" height="100%">
                           <BarChart data={question.distribution}>
-                            <CartesianGrid strokeDasharray="3 3" />
-                            <XAxis dataKey="label" />
-                            <YAxis allowDecimals={false} />
-                            <Tooltip />
-                            <Bar dataKey="count" fill="#0f172a" />
+                            <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
+                            <XAxis dataKey="label" tick={chartAxisTick} />
+                            <YAxis allowDecimals={false} tick={chartAxisTick} />
+                            <Tooltip
+                              contentStyle={{
+                                borderRadius: 12,
+                                borderColor: "var(--chart-grid)",
+                                backgroundColor: "var(--chart-tooltip-bg)",
+                                color: "var(--chart-foreground)"
+                              }}
+                              wrapperStyle={{ outline: "none" }}
+                              labelStyle={{ color: "var(--chart-foreground)" }}
+                              itemStyle={{ color: "var(--chart-foreground)" }}
+                            />
+                            <Bar dataKey="count" fill="var(--chart-accent)" radius={[6, 6, 0, 0]} />
                           </BarChart>
                         </ResponsiveContainer>
                       </div>
