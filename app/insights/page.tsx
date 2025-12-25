@@ -361,9 +361,12 @@ export default function InsightsPage() {
                               wrapperStyle={{ outline: "none" }}
                               labelStyle={{ color: "var(--chart-foreground)" }}
                               itemStyle={{ color: "var(--chart-foreground)" }}
-                              formatter={(value: number | null) =>
-                                value === null ? "No entry" : value === 1 ? "Done" : "Missed"
-                              }
+                              formatter={(value) => {
+                                if (value === null || value === undefined) return "No entry";
+                                const numValue = Number(value);
+                                if (Number.isNaN(numValue)) return String(value);
+                                return numValue === 1 ? "Done" : "Missed";
+                              }}
                             />
                             <Line
                               type="monotone"
