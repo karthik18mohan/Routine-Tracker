@@ -8,9 +8,8 @@ import { Skeleton } from "../../components/Skeleton";
 import { format } from "date-fns";
 import { todayString } from "../../lib/date";
 import {
-  Bar,
-  BarChart,
   CartesianGrid,
+  Legend,
   Line,
   LineChart,
   ResponsiveContainer,
@@ -30,6 +29,8 @@ type InsightQuestion = {
   distribution?: { label: string; count: number }[];
   count?: number;
   latest?: { date: string; value: string }[];
+  trend?: { points: { date: string; value: number | null }[] };
+  optionTrend?: { keys: string[]; points: { date: string; [key: string]: number | string }[] };
 };
 
 const ranges = ["week", "month", "year"] as const;
@@ -48,6 +49,13 @@ export default function InsightsPage() {
   const router = useRouter();
 
   const chartAxisTick = { fill: "var(--chart-muted)", fontSize: 12 };
+  const linePalette = [
+    "var(--chart-series-1)",
+    "var(--chart-series-2)",
+    "var(--chart-series-3)",
+    "var(--chart-series-4)",
+    "var(--chart-series-5)"
+  ];
 
   useEffect(() => {
     const load = async () => {
@@ -117,6 +125,12 @@ export default function InsightsPage() {
     }));
   }, [data]);
 
+  const buildTrendPoints = (points: { date: string; [key: string]: number | string | null }[]) =>
+    points.map((point) => ({
+      ...point,
+      label: format(new Date(point.date), "MMM d")
+    }));
+
   const averageCompletion = useMemo(() => {
     if (!checkboxQuestions.length) return 0;
     const total = checkboxQuestions.reduce(
@@ -157,9 +171,30 @@ export default function InsightsPage() {
             <section className="space-y-4">
               <h2 className="text-xl font-semibold">Overview</h2>
               <div className="grid gap-4 lg:grid-cols-3">
-                <div className="rounded-2xl border border-slate-200/70 bg-white/90 p-5 shadow-lg shadow-slate-200/50 backdrop-blur">
+                <div className="group relative overflow-hidden rounded-2xl border border-slate-200/70 bg-white/90 p-5 shadow-lg shadow-slate-200/50 backdrop-blur transition duration-300 hover:-translate-y-1 hover:shadow-xl">
+                  <div className="absolute -right-10 -top-10 h-24 w-24 rounded-full bg-indigo-200/40 blur-2xl transition group-hover:scale-110" />
                   <div className="space-y-2">
-                    <h3 className="text-lg font-semibold">Task completion</h3>
+                    <div className="flex items-center gap-2 text-lg font-semibold">
+                      <span className="grid h-9 w-9 place-items-center rounded-full bg-indigo-50 text-indigo-600 shadow-sm animate-[float_6s_ease-in-out_infinite]">
+                        <svg aria-hidden="true" className="h-5 w-5" fill="none" viewBox="0 0 24 24">
+                          <path
+                            d="M9 12l2 2 4-4"
+                            stroke="currentColor"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth="2"
+                          />
+                          <path
+                            d="M7 3h10a2 2 0 012 2v14a2 2 0 01-2 2H7a2 2 0 01-2-2V5a2 2 0 012-2z"
+                            stroke="currentColor"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth="2"
+                          />
+                        </svg>
+                      </span>
+                      Task completion
+                    </div>
                     <p className="text-sm text-slate-500">
                       {data.tasks.completed}/{data.tasks.total} completed ({data.tasks.rate}%)
                     </p>
@@ -171,30 +206,80 @@ export default function InsightsPage() {
                     </div>
                   </div>
                 </div>
-                <div className="rounded-2xl border border-slate-200/70 bg-white/90 p-5 shadow-lg shadow-slate-200/50 backdrop-blur">
+                <div className="group relative overflow-hidden rounded-2xl border border-slate-200/70 bg-white/90 p-5 shadow-lg shadow-slate-200/50 backdrop-blur transition duration-300 hover:-translate-y-1 hover:shadow-xl">
+                  <div className="absolute -left-8 top-6 h-20 w-20 rounded-full bg-emerald-200/40 blur-2xl transition group-hover:scale-110" />
                   <div className="space-y-2">
-                    <h3 className="text-lg font-semibold">Habit completion</h3>
+                    <div className="flex items-center gap-2 text-lg font-semibold">
+                      <span className="grid h-9 w-9 place-items-center rounded-full bg-emerald-50 text-emerald-600 shadow-sm animate-[float_6s_ease-in-out_infinite]">
+                        <svg aria-hidden="true" className="h-5 w-5" fill="none" viewBox="0 0 24 24">
+                          <path
+                            d="M12 6v6l4 2"
+                            stroke="currentColor"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth="2"
+                          />
+                          <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2" />
+                        </svg>
+                      </span>
+                      Habit completion
+                    </div>
                     <p className="text-sm text-slate-500">
                       Average completion across checkbox habits.
                     </p>
                     <p className="text-3xl font-semibold text-slate-900">{averageCompletion}%</p>
                   </div>
                 </div>
-                <div className="rounded-2xl border border-slate-200/70 bg-white/90 p-5 shadow-lg shadow-slate-200/50 backdrop-blur">
+                <div className="group relative overflow-hidden rounded-2xl border border-slate-200/70 bg-white/90 p-5 shadow-lg shadow-slate-200/50 backdrop-blur transition duration-300 hover:-translate-y-1 hover:shadow-xl">
+                  <div className="absolute -bottom-10 right-6 h-24 w-24 rounded-full bg-fuchsia-200/40 blur-2xl transition group-hover:scale-110" />
                   <div className="space-y-2">
-                    <h3 className="text-lg font-semibold">Journal activity</h3>
+                    <div className="flex items-center gap-2 text-lg font-semibold">
+                      <span className="grid h-9 w-9 place-items-center rounded-full bg-fuchsia-50 text-fuchsia-600 shadow-sm animate-[float_6s_ease-in-out_infinite]">
+                        <svg aria-hidden="true" className="h-5 w-5" fill="none" viewBox="0 0 24 24">
+                          <path
+                            d="M5 6h10a2 2 0 012 2v10a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2z"
+                            stroke="currentColor"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth="2"
+                          />
+                          <path
+                            d="M7 10h6M7 14h4"
+                            stroke="currentColor"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth="2"
+                          />
+                        </svg>
+                      </span>
+                      Journal activity
+                    </div>
                     <p className="text-sm text-slate-500">Total journal entries in range.</p>
                     <p className="text-3xl font-semibold text-slate-900">{journalCount}</p>
                   </div>
                 </div>
               </div>
-              <div className="rounded-2xl border border-slate-200/70 bg-white/90 p-5 shadow-lg shadow-slate-200/50">
+              <div className="relative overflow-hidden rounded-2xl border border-slate-200/70 bg-white/90 p-5 shadow-lg shadow-slate-200/50">
+                <div className="absolute inset-x-0 top-0 h-32 bg-gradient-to-r from-sky-100/60 via-white/0 to-fuchsia-100/60" />
                 <div className="space-y-2">
-                  <h3 className="text-lg font-semibold">Water (last 10 days)</h3>
+                  <div className="flex items-center gap-2 text-lg font-semibold">
+                    <span className="grid h-9 w-9 place-items-center rounded-full bg-sky-50 text-sky-600 shadow-sm animate-[float_6s_ease-in-out_infinite]">
+                      <svg aria-hidden="true" className="h-5 w-5" fill="none" viewBox="0 0 24 24">
+                        <path
+                          d="M12 3s6 6.5 6 10a6 6 0 11-12 0c0-3.5 6-10 6-10z"
+                          stroke="currentColor"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth="2"
+                        />
+                      </svg>
+                    </span>
+                    Water (last 10 days)
+                  </div>
                   <p className="text-sm text-slate-500">Daily liters logged.</p>
                 </div>
                 {waterTrend.length > 0 ? (
-                  <div className="mt-4 h-48 text-[color:var(--chart-foreground)]">
+                  <div className="mt-4 h-56 text-[color:var(--chart-foreground)]">
                     <ResponsiveContainer width="100%" height="100%">
                       <LineChart data={waterTrend}>
                         <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
@@ -215,8 +300,9 @@ export default function InsightsPage() {
                           type="monotone"
                           dataKey="value"
                           stroke="var(--chart-accent)"
-                          strokeWidth={2}
-                          dot={{ r: 3, fill: "var(--chart-accent)" }}
+                          strokeWidth={3}
+                          dot={{ r: 4, fill: "var(--chart-accent)" }}
+                          activeDot={{ r: 6 }}
                         />
                       </LineChart>
                     </ResponsiveContainer>
@@ -233,10 +319,24 @@ export default function InsightsPage() {
                 {checkboxQuestions.map((question) => (
                   <div
                     key={question.id}
-                    className="rounded-2xl border border-slate-200/70 bg-white/90 p-5 shadow-sm shadow-slate-200/40"
+                    className="group rounded-2xl border border-slate-200/70 bg-white/90 p-5 shadow-sm shadow-slate-200/40 transition duration-300 hover:-translate-y-1 hover:shadow-lg"
                   >
                     <div className="flex items-center justify-between gap-3">
-                      <h3 className="font-medium">{question.prompt}</h3>
+                      <h3 className="flex items-center gap-2 font-medium">
+                        <span className="grid h-8 w-8 place-items-center rounded-full bg-emerald-50 text-emerald-600 shadow-sm">
+                          <svg aria-hidden="true" className="h-4 w-4" fill="none" viewBox="0 0 24 24">
+                            <path
+                              d="M9 12l2 2 4-4"
+                              stroke="currentColor"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth="2"
+                            />
+                            <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2" />
+                          </svg>
+                        </span>
+                        {question.prompt}
+                      </h3>
                       <span className="text-xs uppercase tracking-wide text-slate-500">
                         {question.type}
                       </span>
@@ -244,6 +344,42 @@ export default function InsightsPage() {
                     <div className="mt-3 text-sm text-slate-500">
                       Completion rate: {question.completion_rate}% | Current streak: {question.current_streak} days
                     </div>
+                    {question.trend?.points?.length ? (
+                      <div className="mt-4 h-32 text-[color:var(--chart-foreground)]">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <LineChart data={buildTrendPoints(question.trend.points)}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
+                            <XAxis dataKey="label" tick={chartAxisTick} />
+                            <YAxis allowDecimals={false} tick={chartAxisTick} domain={[0, 1]} />
+                            <Tooltip
+                              contentStyle={{
+                                borderRadius: 12,
+                                borderColor: "var(--chart-grid)",
+                                backgroundColor: "var(--chart-tooltip-bg)",
+                                color: "var(--chart-foreground)"
+                              }}
+                              wrapperStyle={{ outline: "none" }}
+                              labelStyle={{ color: "var(--chart-foreground)" }}
+                              itemStyle={{ color: "var(--chart-foreground)" }}
+                              formatter={(value) => {
+                                if (value === null || value === undefined) return "No entry";
+                                const numValue = Number(value);
+                                if (Number.isNaN(numValue)) return String(value);
+                                return numValue === 1 ? "Done" : "Missed";
+                              }}
+                            />
+                            <Line
+                              type="monotone"
+                              dataKey="value"
+                              stroke="var(--chart-series-2)"
+                              strokeWidth={2}
+                              dot={{ r: 3, fill: "var(--chart-series-2)" }}
+                              activeDot={{ r: 5 }}
+                            />
+                          </LineChart>
+                        </ResponsiveContainer>
+                      </div>
+                    ) : null}
                   </div>
                 ))}
               </div>
@@ -255,26 +391,71 @@ export default function InsightsPage() {
                 {numberRatingQuestions.map((question) => (
                   <div
                     key={question.id}
-                    className="rounded-2xl border border-slate-200/70 bg-white/90 p-5 shadow-sm shadow-slate-200/40"
+                    className="group rounded-2xl border border-slate-200/70 bg-white/90 p-5 shadow-sm shadow-slate-200/40 transition duration-300 hover:-translate-y-1 hover:shadow-lg"
                   >
                     <div className="flex items-center justify-between gap-3">
-                      <h3 className="font-medium">{question.prompt}</h3>
+                      <h3 className="flex items-center gap-2 font-medium">
+                        <span className="grid h-8 w-8 place-items-center rounded-full bg-indigo-50 text-indigo-600 shadow-sm">
+                          <svg aria-hidden="true" className="h-4 w-4" fill="none" viewBox="0 0 24 24">
+                            <path
+                              d="M4 12h16M12 4v16"
+                              stroke="currentColor"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth="2"
+                            />
+                          </svg>
+                        </span>
+                        {question.prompt}
+                      </h3>
                       <span className="text-xs uppercase tracking-wide text-slate-500">
                         {question.type}
                       </span>
                     </div>
                     {question.type === "number" && question.stats && (
-                      <div className="mt-3 grid gap-2 text-sm text-slate-500 sm:grid-cols-2">
-                        <p>Avg: {question.stats.avg}</p>
-                        <p>Sum: {question.stats.sum}</p>
-                        <p>Min: {question.stats.min}</p>
-                        <p>Max: {question.stats.max}</p>
-                      </div>
+                      <>
+                        <div className="mt-3 grid gap-2 text-sm text-slate-500 sm:grid-cols-2">
+                          <p>Avg: {question.stats.avg}</p>
+                          <p>Sum: {question.stats.sum}</p>
+                          <p>Min: {question.stats.min}</p>
+                          <p>Max: {question.stats.max}</p>
+                        </div>
+                        {question.trend?.points?.length ? (
+                          <div className="mt-4 h-40 text-[color:var(--chart-foreground)]">
+                            <ResponsiveContainer width="100%" height="100%">
+                              <LineChart data={buildTrendPoints(question.trend.points)}>
+                                <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
+                                <XAxis dataKey="label" tick={chartAxisTick} />
+                                <YAxis allowDecimals={false} tick={chartAxisTick} />
+                                <Tooltip
+                                  contentStyle={{
+                                    borderRadius: 12,
+                                    borderColor: "var(--chart-grid)",
+                                    backgroundColor: "var(--chart-tooltip-bg)",
+                                    color: "var(--chart-foreground)"
+                                  }}
+                                  wrapperStyle={{ outline: "none" }}
+                                  labelStyle={{ color: "var(--chart-foreground)" }}
+                                  itemStyle={{ color: "var(--chart-foreground)" }}
+                                />
+                                <Line
+                                  type="monotone"
+                                  dataKey="value"
+                                  stroke="var(--chart-series-1)"
+                                  strokeWidth={2}
+                                  dot={{ r: 3, fill: "var(--chart-series-1)" }}
+                                  activeDot={{ r: 5 }}
+                                />
+                              </LineChart>
+                            </ResponsiveContainer>
+                          </div>
+                        ) : null}
+                      </>
                     )}
-                    {question.type === "rating" && (
-                      <div className="mt-4 h-52 text-[color:var(--chart-foreground)]">
+                    {question.type === "rating" && question.optionTrend && (
+                      <div className="mt-4 h-56 text-[color:var(--chart-foreground)]">
                         <ResponsiveContainer width="100%" height="100%">
-                          <BarChart data={question.distribution}>
+                          <LineChart data={buildTrendPoints(question.optionTrend.points)}>
                             <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
                             <XAxis dataKey="label" tick={chartAxisTick} />
                             <YAxis allowDecimals={false} tick={chartAxisTick} />
@@ -289,8 +470,19 @@ export default function InsightsPage() {
                               labelStyle={{ color: "var(--chart-foreground)" }}
                               itemStyle={{ color: "var(--chart-foreground)" }}
                             />
-                            <Bar dataKey="count" fill="var(--chart-accent)" radius={[6, 6, 0, 0]} />
-                          </BarChart>
+                            <Legend />
+                            {question.optionTrend.keys.map((key, index) => (
+                              <Line
+                                key={key}
+                                type="monotone"
+                                dataKey={key}
+                                stroke={linePalette[index % linePalette.length]}
+                                strokeWidth={2}
+                                dot={{ r: 3 }}
+                                activeDot={{ r: 5 }}
+                              />
+                            ))}
+                          </LineChart>
                         </ResponsiveContainer>
                       </div>
                     )}
@@ -305,35 +497,64 @@ export default function InsightsPage() {
                 {selectQuestions.map((question) => (
                   <div
                     key={question.id}
-                    className="rounded-2xl border border-slate-200/70 bg-white/90 p-5 shadow-sm shadow-slate-200/40"
+                    className="group rounded-2xl border border-slate-200/70 bg-white/90 p-5 shadow-sm shadow-slate-200/40 transition duration-300 hover:-translate-y-1 hover:shadow-lg"
                   >
                     <div className="flex items-center justify-between gap-3">
-                      <h3 className="font-medium">{question.prompt}</h3>
+                      <h3 className="flex items-center gap-2 font-medium">
+                        <span className="grid h-8 w-8 place-items-center rounded-full bg-sky-50 text-sky-600 shadow-sm">
+                          <svg aria-hidden="true" className="h-4 w-4" fill="none" viewBox="0 0 24 24">
+                            <path
+                              d="M8 6h12M8 12h12M8 18h12"
+                              stroke="currentColor"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth="2"
+                            />
+                            <circle cx="4" cy="6" r="1.5" fill="currentColor" />
+                            <circle cx="4" cy="12" r="1.5" fill="currentColor" />
+                            <circle cx="4" cy="18" r="1.5" fill="currentColor" />
+                          </svg>
+                        </span>
+                        {question.prompt}
+                      </h3>
                       <span className="text-xs uppercase tracking-wide text-slate-500">
                         {question.type}
                       </span>
                     </div>
-                    <div className="mt-4 h-52 text-[color:var(--chart-foreground)]">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={question.distribution}>
-                          <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
-                          <XAxis dataKey="label" tick={chartAxisTick} />
-                          <YAxis allowDecimals={false} tick={chartAxisTick} />
-                          <Tooltip
-                            contentStyle={{
-                              borderRadius: 12,
-                              borderColor: "var(--chart-grid)",
-                              backgroundColor: "var(--chart-tooltip-bg)",
-                              color: "var(--chart-foreground)"
-                            }}
-                            wrapperStyle={{ outline: "none" }}
-                            labelStyle={{ color: "var(--chart-foreground)" }}
-                            itemStyle={{ color: "var(--chart-foreground)" }}
-                          />
-                          <Bar dataKey="count" fill="var(--chart-accent)" radius={[6, 6, 0, 0]} />
-                        </BarChart>
-                      </ResponsiveContainer>
-                    </div>
+                    {question.optionTrend && (
+                      <div className="mt-4 h-56 text-[color:var(--chart-foreground)]">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <LineChart data={buildTrendPoints(question.optionTrend.points)}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
+                            <XAxis dataKey="label" tick={chartAxisTick} />
+                            <YAxis allowDecimals={false} tick={chartAxisTick} />
+                            <Tooltip
+                              contentStyle={{
+                                borderRadius: 12,
+                                borderColor: "var(--chart-grid)",
+                                backgroundColor: "var(--chart-tooltip-bg)",
+                                color: "var(--chart-foreground)"
+                              }}
+                              wrapperStyle={{ outline: "none" }}
+                              labelStyle={{ color: "var(--chart-foreground)" }}
+                              itemStyle={{ color: "var(--chart-foreground)" }}
+                            />
+                            <Legend />
+                            {question.optionTrend.keys.map((key, index) => (
+                              <Line
+                                key={key}
+                                type="monotone"
+                                dataKey={key}
+                                stroke={linePalette[index % linePalette.length]}
+                                strokeWidth={2}
+                                dot={{ r: 3 }}
+                                activeDot={{ r: 5 }}
+                              />
+                            ))}
+                          </LineChart>
+                        </ResponsiveContainer>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
@@ -345,10 +566,30 @@ export default function InsightsPage() {
                 {textQuestions.map((question) => (
                   <div
                     key={question.id}
-                    className="rounded-2xl border border-slate-200/70 bg-white/90 p-5 shadow-sm shadow-slate-200/40"
+                    className="group rounded-2xl border border-slate-200/70 bg-white/90 p-5 shadow-sm shadow-slate-200/40 transition duration-300 hover:-translate-y-1 hover:shadow-lg"
                   >
                     <div className="flex items-center justify-between gap-3">
-                      <h3 className="font-medium">{question.prompt}</h3>
+                      <h3 className="flex items-center gap-2 font-medium">
+                        <span className="grid h-8 w-8 place-items-center rounded-full bg-fuchsia-50 text-fuchsia-600 shadow-sm">
+                          <svg aria-hidden="true" className="h-4 w-4" fill="none" viewBox="0 0 24 24">
+                            <path
+                              d="M7 4h10a2 2 0 012 2v12a2 2 0 01-2 2H7a2 2 0 01-2-2V6a2 2 0 012-2z"
+                              stroke="currentColor"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth="2"
+                            />
+                            <path
+                              d="M9 8h6M9 12h6M9 16h4"
+                              stroke="currentColor"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth="2"
+                            />
+                          </svg>
+                        </span>
+                        {question.prompt}
+                      </h3>
                       <span className="text-xs uppercase tracking-wide text-slate-500">
                         {question.type}
                       </span>
