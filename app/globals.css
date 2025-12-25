@@ -4,10 +4,20 @@
 
 :root {
   color-scheme: light;
+  --chart-foreground: #0f172a;
+  --chart-grid: rgba(15, 23, 42, 0.12);
+  --chart-muted: #64748b;
+  --chart-accent: #6366f1;
+  --chart-tooltip-bg: #ffffff;
 }
 
 html.dark {
   color-scheme: dark;
+  --chart-foreground: #e2e8f0;
+  --chart-grid: rgba(148, 163, 184, 0.25);
+  --chart-muted: #94a3b8;
+  --chart-accent: #38bdf8;
+  --chart-tooltip-bg: #0f172a;
 }
 
 body {

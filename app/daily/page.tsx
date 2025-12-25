@@ -98,6 +98,20 @@ export default function DailyPage() {
     }, {} as Record<string, Question[]>);
   }, [data]);
 
+  const orderedQuestionsBySection = useMemo(() => {
+    const next: Record<string, Question[]> = {};
+    Object.entries(questionsBySection).forEach(([sectionId, questions]) => {
+      const nonDropdown = questions.filter(
+        (question) => question.type !== "select" && question.type !== "rating"
+      );
+      const dropdown = questions.filter(
+        (question) => question.type === "select" || question.type === "rating"
+      );
+      next[sectionId] = [...nonDropdown, ...dropdown];
+    });
+    return next;
+  }, [questionsBySection]);
+
   const saveAnswers = useCallback(async () => {
     if (!data) return;
     const dirtyIds = Object.keys(dirtyAnswers).filter((id) => dirtyAnswers[id]);
@@ -156,7 +170,7 @@ export default function DailyPage() {
                   )}
                 </div>
                 <div className="grid gap-4 rounded-2xl border border-slate-200/70 bg-white/90 p-4 shadow-lg shadow-slate-200/50 backdrop-blur transition duration-300 ease-out hover:-translate-y-0.5 hover:shadow-xl dark:border-slate-800/70 dark:bg-slate-900/80 dark:shadow-slate-950/40">
-                  {(questionsBySection[section.id] ?? []).map((question) => (
+                  {(orderedQuestionsBySection[section.id] ?? []).map((question) => (
                     <div key={question.id} className="space-y-1">
                       <QuestionRenderer
                         question={question}
